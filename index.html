@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -66,6 +66,7 @@
   .row button { flex: 1; }
   .hint { font-size: 12px; color: #94a3b8; line-height: 1.4; margin-top: 10px; text-align: left; }
   .peerid { font-family: ui-monospace, monospace; background: #0b1220; padding: 8px; border-radius: 8px; word-break: break-all; }
+  #mapPrev { width: 100%; height: 132px; border-radius: 12px; background: #0b1220; display: block; margin: 8px 0 12px; }
   #touch {
     position: fixed; inset: 0; pointer-events: none; z-index: 5;
   }
@@ -144,26 +145,164 @@
     { name: "Azul", fill: "#3b82f6", dark: "#1d4ed8", light: "#93c5fd" },
     { name: "Laranja", fill: "#f97316", dark: "#c2410c", light: "#fdba74" }
   ];
+  const AIM_MAX = 50;
+  function teamOf(i) { return i & 1; }
+  function colOf(i) { return COLORS[teamOf(i)]; }
   const STATE = { MENU: "menu", GAME: "game", RESULT: "result" };
   const JUDGE = {
-    SALVAMENTO: { label: "Salvamento!", pts: 160, color: "#fde047" },
-    DEFESA: { label: "Defesa!", pts: 120, color: "#67e8f9" },
-    MERGDEFESA: { label: "Mergulho de defesa!", pts: 170, color: "#f9a8d4" },
-    CONTROLE: { label: "Controle de balão", pts: 50, color: "#93c5fd" },
-    DOWNSMASH: { label: "Down smash!", pts: 180, color: "#fb7185" },
-    PEGADAALTA: { label: "Pegada alta", pts: 90, color: "#c4b5fd" },
-    SALVOBAIXO: { label: "Salvo por baixo!", pts: 140, color: "#86efac" },
-    COSTAS: { label: "De costas!", pts: 110, color: "#fdba74" }
+    SALVAMENTO: { pts: 160, color: "#fde047" },
+    DEFESA: { pts: 120, color: "#67e8f9" },
+    MERGDEFESA: { pts: 170, color: "#f9a8d4" },
+    CONTROLE: { pts: 50, color: "#93c5fd" },
+    DOWNSMASH: { pts: 180, color: "#fb7185" },
+    PEGADAALTA: { pts: 90, color: "#c4b5fd" },
+    SALVOBAIXO: { pts: 140, color: "#86efac" },
+    COSTAS: { pts: 110, color: "#fdba74" },
+    NEUTRO: { pts: 25, color: "#cbd5e1" },
+    CORTADA: { pts: 150, color: "#f87171" },
+    LOB: { pts: 70, color: "#a5b4fc" },
+    BLOQUEIO: { pts: 155, color: "#38bdf8" },
+    PAREDE: { pts: 130, color: "#fcd34d" },
+    PENDURADO: { pts: 145, color: "#f0abfc" },
+    DESLIZE: { pts: 125, color: "#5eead4" },
+    AEREO: { pts: 80, color: "#c4b5fd" },
+    RALLY: { pts: 100, color: "#fde68a" },
+    EQUIPE: { pts: 90, color: "#86efac" },
+    ROUBO: { pts: 140, color: "#fb7185" },
+    CARGA: { pts: 85, color: "#fdba74" },
+    PENA: { pts: 60, color: "#e2e8f0" },
+    RECUPERACAO: { pts: 115, color: "#67e8f9" },
+    CLUTCH: { pts: 200, color: "#facc15" },
+    CONTRA: { pts: 165, color: "#f97316" },
+    DUPLO: { pts: 95, color: "#93c5fd" },
+    DIAGONAL: { pts: 75, color: "#fda4af" },
+    PRIMEIRO: { pts: 40, color: "#bbf7d0" }
   };
+  const LANGS = {
+    pt: {
+      play: "Jogar", how: "Como jogar", train: "Modo treino",
+      pick_opp: "escolha o adversário", vs_cpu: "Contra o computador", vs_friend: "Contra um amigo",
+      back: "Voltar", type: "Tipo de jogo", type_sub: "1 contra 1 ou duplas",
+      cont_mode: "Continuar · modo", mode: "Modo de jogo", mode_sub: "como se marca ponto",
+      classic: "Clássico · chão vale ponto", volley: "Vôlei · vão do rival", control: "Controle · quem segura mais",
+      cont_rules: "Continuar · regras", rules: "Forma e partida",
+      form_on: "Modo forma · ligado", form_off: "Modo forma · desligado",
+      by_time: "Por tempo", best_of: "Melhor de", min: "min", of: "de",
+      cont_map: "Continuar · mapa", map: "Mapa", use_map: "Usar este mapa",
+      ai: "IA", ai_sub: "dificuldade de cada CPU",
+      easy: "Fácil", mid: "Médio", hard: "Difícil", imp: "Impos.",
+      mate: "Seu parceiro", rival_a: "Rival A", rival_b: "Rival B",
+      mate_ai: "Seu parceiro IA", their_ai: "Parceiro IA do amigo", opp: "Adversário",
+      pvp: "Versus amigo", pvp_sub: "conexão direta com PeerJS",
+      host: "Criar sala", join: "Entrar em sala",
+      pause: "Pausa", resume: "Continuar", menu: "Menu",
+      win: "Você venceu!", lose: "Fim de jogo",
+      more_form: "fez mais pontos de forma + queda", more_falls: "fez mais quedas",
+      again: "Jogar de novo nesta fase", change: "Trocar fase",
+      train_hud: "treino", best_hud: "melhor de", form_hud: "forma",
+      pts: "pts", combo: "combo", returning: "voltando...",
+      extra: "Prorrogação! primeiro a sair na frente vence",
+      extra_goal: "Ainda empatado — gol de ouro",
+      added: "Acréscimo! próximo ponto ou toque acaba",
+      point: "Ponto!", no_own: "Sem ponto contra!",
+      tag: "toque o balão e não deixe o ponto escapar",
+      room: "Sala criada", send_id: "envie este ID para o amigo",
+      copy: "Copiar ID", wait: "esperando o amigo…",
+      enter: "Entrar", creating: "Criando sala…", talking: "falando com o PeerJS",
+      err: "Erro", peer_fail: "PeerJS não carregou",
+      joining: "Conectando…",
+      how_c: "Clássico: balão no chão vale ponto para quem tocou por último.",
+      how_v: "Vôlei: ponto ao mandar o balão no vão da cor rival. O seu vão devolve o balão. Jogadores não caem no vão.",
+      how_k: "Controle: vence quem ficar mais tempo com a cor do balão.",
+      how_d: "Mergulho no chão é um pulo largo. Ao pousar você desliza até parar.",
+      how_h: "Segure o toque para carregar a força; soltar no meio sai mais fraco. Neutro é não apontar direção.",
+      how_a: "Só quem ataca vê a mira; o outro vê só os punhos.",
+      how_pc: "PC: ← → andar · ↑ / Z / Espaço pular · toque duplo ← ou → ou botão mergulha · X tocar · Esc pausa",
+      how_ph: "Celular: joystick · Pular, Tocar e Mergulho",
+      ok: "Entendi",
+      m_classic: "Clássico", m_volley: "Vôlei", m_control: "Controle",
+      n_quadra: "Quadra", n_plats: "Plataformas", n_tramp: "Trampolins", n_walls: "Paredes",
+      blue: "Azul", orange: "Laranja",
+      j_SALVAMENTO: "Salvamento!", j_DEFESA: "Defesa!", j_MERGDEFESA: "Mergulho de defesa!",
+      j_CONTROLE: "Controle de balão", j_DOWNSMASH: "Down smash!", j_PEGADAALTA: "Pegada alta",
+      j_SALVOBAIXO: "Salvo por baixo!", j_COSTAS: "De costas!", j_NEUTRO: "Toque neutro",
+      j_CORTADA: "Cortada!", j_LOB: "Lob", j_BLOQUEIO: "Bloqueio!", j_PAREDE: "Parede!",
+      j_PENDURADO: "Pendurado!", j_DESLIZE: "Deslize!", j_AEREO: "Aéreo", j_RALLY: "Rally longo",
+      j_EQUIPE: "Jogada de equipe", j_ROUBO: "Roubo!", j_CARGA: "Carga perfeita", j_PENA: "Pena",
+      j_RECUPERACAO: "Recuperação", j_CLUTCH: "Clutch!", j_CONTRA: "Contra-ataque!",
+      j_DUPLO: "Pulo duplo", j_DIAGONAL: "Diagonal", j_PRIMEIRO: "Primeiro toque"
+    },
+    en: {
+      play: "Play", how: "How to play", train: "Training",
+      pick_opp: "choose your opponent", vs_cpu: "Versus computer", vs_friend: "Versus a friend",
+      back: "Back", type: "Match type", type_sub: "singles or doubles",
+      cont_mode: "Continue · mode", mode: "Game mode", mode_sub: "how you score",
+      classic: "Classic · floor is a point", volley: "Volley · rival pit", control: "Control · who holds longer",
+      cont_rules: "Continue · rules", rules: "Style and match",
+      form_on: "Style mode · on", form_off: "Style mode · off",
+      by_time: "Timed", best_of: "Best of", min: "min", of: "of",
+      cont_map: "Continue · map", map: "Map", use_map: "Use this map",
+      ai: "AI", ai_sub: "difficulty for each CPU",
+      easy: "Easy", mid: "Medium", hard: "Hard", imp: "Imposs.",
+      mate: "Your partner", rival_a: "Rival A", rival_b: "Rival B",
+      mate_ai: "Your AI partner", their_ai: "Friend's AI partner", opp: "Opponent",
+      pvp: "Versus friend", pvp_sub: "direct PeerJS connection",
+      host: "Create room", join: "Join room",
+      pause: "Pause", resume: "Resume", menu: "Menu",
+      win: "You win!", lose: "Game over",
+      more_form: "scored more style + falls", more_falls: "scored more falls",
+      again: "Play again on this stage", change: "Change stage",
+      train_hud: "training", best_hud: "best of", form_hud: "style",
+      pts: "pts", combo: "combo", returning: "coming back...",
+      extra: "Overtime! first to take the lead wins",
+      extra_goal: "Still tied — golden point",
+      added: "Stoppage! next point or bounce ends it",
+      point: "Point!", no_own: "No own-goal!",
+      tag: "hit the balloon and don't let the point drop",
+      room: "Room created", send_id: "send this ID to your friend",
+      copy: "Copy ID", wait: "waiting for your friend…",
+      enter: "Join", creating: "Creating room…", talking: "talking to PeerJS",
+      err: "Error", peer_fail: "PeerJS failed to load",
+      joining: "Connecting…",
+      how_c: "Classic: balloon on the floor is a point for the last touch.",
+      how_v: "Volley: score by sending the balloon into the rival-colored pit. Your pit sends it back up. Players cannot fall in.",
+      how_k: "Control: whoever keeps the balloon color longer wins.",
+      how_d: "A grounded dive is a long leap. On landing you slide until friction stops you.",
+      how_h: "Hold the hit to charge power; release early for a weaker hit. Neutral means no aim direction.",
+      how_a: "Only the attacker sees the reticle; the other player just sees the fists.",
+      how_pc: "PC: ← → move · ↑ / Z / Space jump · double-tap ← or → or button to dive · X hit · Esc pause",
+      how_ph: "Phone: stick · Jump, Hit and Dive",
+      ok: "Got it",
+      m_classic: "Classic", m_volley: "Volley", m_control: "Control",
+      n_quadra: "Court", n_plats: "Platforms", n_tramp: "Trampolines", n_walls: "Walls",
+      blue: "Blue", orange: "Orange",
+      j_SALVAMENTO: "Save!", j_DEFESA: "Defense!", j_MERGDEFESA: "Diving save!",
+      j_CONTROLE: "Balloon control", j_DOWNSMASH: "Down smash!", j_PEGADAALTA: "High catch",
+      j_SALVOBAIXO: "Save from below!", j_COSTAS: "Backhand!", j_NEUTRO: "Neutral touch",
+      j_CORTADA: "Spike!", j_LOB: "Lob", j_BLOQUEIO: "Block!", j_PAREDE: "Wall!",
+      j_PENDURADO: "Hanging!", j_DESLIZE: "Slide!", j_AEREO: "Aerial", j_RALLY: "Long rally",
+      j_EQUIPE: "Team play", j_ROUBO: "Steal!", j_CARGA: "Perfect charge", j_PENA: "Feather",
+      j_RECUPERACAO: "Recovery", j_CLUTCH: "Clutch!", j_CONTRA: "Counter!",
+      j_DUPLO: "Double jump", j_DIAGONAL: "Cross-court", j_PRIMEIRO: "First touch"
+    }
+  };
+  const lang = ((navigator.language || "en").toLowerCase().startsWith("pt")) ? "pt" : "en";
+  function t(k) { return (LANGS[lang] && LANGS[lang][k]) || LANGS.en[k] || k; }
   let screen = STATE.MENU;
   let mode = "pve";
+  let playPath = "pve";
+  let gameMode = "classic";
+  let gameFormat = "1v1";
+  let matchKind = "time";
+  let bestOf = 5;
   let difficulty = "medio";
+  let aiDiffs = ["medio", "medio", "medio", "medio"];
   let selectedStage = 0;
   let selectedMinutes = 2;
   let formOpt = false;
-  let groundPopOpt = false;
   let paused = false;
   let stageNext = "start-pve";
+  let audioCtx = null;
   let localIndex = 0;
   let isHost = true;
   let peer = null, conn = null, myPeerId = "";
@@ -203,16 +342,47 @@
       s: 0.6 + Math.random() * 1.1, v: 0.15 + Math.random() * 0.25
     });
   }
-  function stageDef(id) {
+  function sfx(kind) {
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const t0 = audioCtx.currentTime;
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.connect(g); g.connect(audioCtx.destination);
+      const tab = {
+        hit: [320, 0.09, "square", 0.06],
+        jump: [420, 0.08, "sine", 0.05],
+        dive: [180, 0.12, "sawtooth", 0.05],
+        point: [520, 0.18, "triangle", 0.07],
+        land: [140, 0.06, "sine", 0.04],
+        ui: [660, 0.05, "square", 0.035],
+        whistle: [880, 0.16, "sine", 0.05]
+      };
+      const [f, d, type, vol] = tab[kind] || tab.ui;
+      o.type = type; o.frequency.setValueAtTime(f, t0);
+      if (kind === "point") o.frequency.exponentialRampToValueAtTime(880, t0 + d);
+      if (kind === "jump") o.frequency.exponentialRampToValueAtTime(620, t0 + d);
+      g.gain.setValueAtTime(vol, t0);
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + d);
+      o.start(t0); o.stop(t0 + d);
+    } catch (e) {}
+  }
+  function stageDef(id, gm) {
     const ww = 2400, wh = 1280;
-    const ground = { x: 320, y: 980, w: 1760, h: 52, kind: "ground" };
+    const volley = gm === "volley";
+    const ground = volley
+      ? { x: 320, y: 980, w: 1760, h: 52, kind: "ground" }
+      : { x: 0, y: 980, w: 2400, h: 52, kind: "ground" };
+    const walk = { x: 0, y: 980, w: 2400, h: 52, kind: "walk", oneWay: false };
     const sideL = { x: 0, y: 980, w: 320, h: 300, kind: "side", owner: 0 };
     const sideR = { x: 2080, y: 980, w: 320, h: 300, kind: "side", owner: 1 };
+    const sides = volley ? [sideL, sideR] : [];
+    const plats0 = volley ? [ground, walk] : [ground];
     if (id === 0) {
       return {
         name: "Quadra", ww, wh,
-        platforms: [ground],
-        sides: [sideL, sideR],
+        platforms: plats0,
+        sides,
         trampolines: [],
         walls: [],
         sky: ["#1a1524", "#2a2238"]
@@ -222,12 +392,12 @@
       return {
         name: "Plataformas", ww, wh,
         platforms: [
-          ground,
-          { x: 160, y: 620, w: 440, h: 36, kind: "float", oneWay: true },
-          { x: 1800, y: 620, w: 440, h: 36, kind: "float", oneWay: true },
-          { x: 940, y: 380, w: 520, h: 34, kind: "float", oneWay: true }
+          ...plats0,
+          { x: 260, y: 800, w: 260, h: 20, kind: "float", oneWay: true },
+          { x: 1880, y: 800, w: 260, h: 20, kind: "float", oneWay: true },
+          { x: 1060, y: 730, w: 280, h: 20, kind: "float", oneWay: true }
         ],
-        sides: [sideL, sideR],
+        sides,
         trampolines: [],
         walls: [],
         sky: ["#16121f", "#262033"]
@@ -236,8 +406,8 @@
     if (id === 2) {
       return {
         name: "Trampolins", ww, wh,
-        platforms: [ground],
-        sides: [sideL, sideR],
+        platforms: plats0,
+        sides,
         trampolines: [
           { x: 320, y: 964, w: 240, h: 18 },
           { x: 1840, y: 964, w: 240, h: 18 }
@@ -248,8 +418,8 @@
     }
     return {
       name: "Paredes", ww, wh,
-      platforms: [ground],
-      sides: [sideL, sideR],
+      platforms: plats0,
+      sides,
       trampolines: [{ x: 1040, y: 820, w: 320, h: 20 }],
       walls: [
         { x: 620, y: 430, w: 32, h: 380 },
@@ -267,8 +437,9 @@
       hanging: false, hangSide: 0, onWall: 0,
       jumpPrev: false, leftPrev: false, rightPrev: false,
       lastDir: 0, lastDirT: -999,
+      sliding: false, useWasOn: false,
       respawnT: 0, aiWait: 0, aiTX: x, aiTY: 400,
-      punchT: 0, punchKind: "idle", punchPow: 0,
+      punchT: 0, punchKind: "idle", punchPow: 0, lastCharge: 0,
       fistL: { x: 0, y: 0 }, fistR: { x: 0, y: 0 },
       combo: 0, lastHitF: 0
     };
@@ -293,11 +464,11 @@
     if (!j || !g || !g.formMode) return;
     const mult = 1 + Math.min(8, (g.players[i].combo || 0)) * 0.15;
     const add = Math.round(j.pts * mult);
-    g.style[i] += add;
+    g.style[teamOf(i)] += add;
     g.players[i].combo = (g.players[i].combo || 0) + 1;
-    g.players[1 - i].combo = 0;
+    g.players.forEach(p => { if (teamOf(p.i) !== teamOf(i)) p.combo = 0; });
     judges.push({
-      text: j.label + " +" + add,
+      text: t("j_" + key) + " +" + add,
       color: j.color,
       x: x, y: y,
       life: 70,
@@ -306,9 +477,10 @@
   }
   function resetRound(g, keepScore) {
     const ww = g.stage.ww || 2400;
-    const spawn = [ww * 0.28, ww * 0.68];
-    g.players[0].x = spawn[0]; g.players[0].y = 880;
-    g.players[1].x = spawn[1]; g.players[1].y = 880;
+    const spawn = g.players.length > 2
+      ? [ww * 0.22, ww * 0.62, ww * 0.34, ww * 0.74]
+      : [ww * 0.28, ww * 0.68];
+    g.players.forEach((p, i) => { p.x = spawn[i] || spawn[0]; p.y = 880; });
     g.players.forEach(p => {
       p.vx = 0; p.vy = 0; p.aimT = 0; p.cooling = 0;
       p.jumps = 1; p.canDive = true; p.diving = false; p.getup = 0;
@@ -322,14 +494,13 @@
     g.cam = { x: ww / 2, y: 720, z: 0.7 };
     g.freeze = 90;
     g.slow = 1;
-    g.stage = stageDef(g.stageId);
+    g.stage = stageDef(g.stageId, g.gameMode);
     g.flash = 0;
     g.rally = 0;
     if (!keepScore) {
       g.score = [0, 0];
       g.style = [0, 0];
-      g.players[0].combo = 0;
-      g.players[1].combo = 0;
+      g.players.forEach(p => { p.combo = 0; });
     }
   }
   function createGame(opts) {
@@ -347,23 +518,56 @@
       winner: -1,
       mode: opts.mode,
       difficulty: opts.difficulty || "medio",
-      players: [newPlayer(0, 280), newPlayer(1, 1000)],
+      aiDiffs: (opts.aiDiffs || aiDiffs).slice(),
+      format: opts.format || gameFormat,
+      players: ((opts.format || gameFormat) === "2v2"
+        ? [newPlayer(0, 400), newPlayer(1, 1500), newPlayer(2, 700), newPlayer(3, 1800)]
+        : [newPlayer(0, 280), newPlayer(1, 1000)]),
       balloon: newBalloon(0),
       lastPoint: -1,
       flash: 0,
       rally: 0,
       overtime: false,
+      extraTime: false,
+      hold: [0, 0],
+      gameMode: opts.gameMode || gameMode,
+      matchKind: opts.matchKind || matchKind,
+      bestOf: opts.bestOf != null ? opts.bestOf : bestOf,
+      training: !!opts.training,
       formMode: opts.formMode != null ? !!opts.formMode : formOpt,
-      groundPop: opts.groundPop != null ? !!opts.groundPop : groundPopOpt,
+      groundPop: (opts.gameMode || gameMode) === "classic",
       cam: { x: 1200, y: 720, z: 0.7 }
     };
-    g.stage = stageDef(sid);
+    if (g.training) g.timeLeft = 99999;
+    g.stage = stageDef(sid, g.gameMode);
     resetRound(g, false);
     return g;
   }
   function totalOf(g, i) {
+    if (g.gameMode === "control") {
+      const hold = Math.floor(g.hold[i] || 0);
+      if (formOn(g)) return hold + (g.style[i] || 0);
+      return hold;
+    }
     if (formOn(g)) return (g.score[i] * 200) + (g.style[i] || 0);
     return g.score[i];
+  }
+  function holdTarget(g) {
+    return g.bestOf === 3 ? 20 : g.bestOf === 7 ? 50 : 35;
+  }
+  function modeLabel(gm) {
+    return gm === "volley" ? t("m_volley") : gm === "control" ? t("m_control") : t("m_classic");
+  }
+  function stageNameOf(st) {
+    const n = st && st.name;
+    if (n === "Quadra") return t("n_quadra");
+    if (n === "Plataformas") return t("n_plats");
+    if (n === "Trampolins") return t("n_tramp");
+    if (n === "Paredes") return t("n_walls");
+    return n || "";
+  }
+  function scoresTied(g) {
+    return totalOf(g, 0) === totalOf(g, 1);
   }
   function rectsOverlap(a, b) {
     return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
@@ -388,7 +592,7 @@
     }
   }
   function inEnemyArea(p, x) {
-    return p.i === 0 ? x > 1200 : x < 1200;
+    return teamOf(p.i) === 0 ? x > 1200 : x < 1200;
   }
   function classifyHit(g, p, dirx, diry, simple) {
     const b = g.balloon;
@@ -401,16 +605,37 @@
     const highGrab = b.y < p.y - 8;
     const prevOwner = b.owner;
     const down = !simple && diry > 0.42;
+    const up = !simple && diry < -0.55;
+    const steal = teamOf(prevOwner) !== teamOf(p.i);
     const keys = [];
-    if (p.diving && prevOwner !== p.i) keys.push("MERGDEFESA");
-    else if (prevOwner !== p.i) keys.push("DEFESA");
+    if (p.diving && steal) keys.push("MERGDEFESA");
+    else if (steal) keys.push("DEFESA");
     if (behind) keys.push("COSTAS");
     if (down && inEnemyArea(p, b.x)) keys.push("DOWNSMASH");
+    else if (down) keys.push("CORTADA");
+    if (up) keys.push("LOB");
     if (fromBelow && nearFloor) keys.push("SALVOBAIXO");
     else if (nearFloor) keys.push("SALVAMENTO");
     if (highGrab) keys.push("PEGADAALTA");
-    if (prevOwner === p.i && !p.diving) keys.push("CONTROLE");
-    const priority = ["MERGDEFESA","DOWNSMASH","SALVOBAIXO","SALVAMENTO","PEGADAALTA","DEFESA","COSTAS","CONTROLE"];
+    if (teamOf(prevOwner) === teamOf(p.i) && !p.diving) keys.push("CONTROLE");
+    if (simple) keys.push("NEUTRO");
+    if (steal && Math.abs(b.x - 1200) < 180 && b.y < 780) keys.push("BLOQUEIO");
+    if (p.onWall) keys.push("PAREDE");
+    if (p.hanging) keys.push("PENDURADO");
+    if (p.sliding) keys.push("DESLIZE");
+    if (!p.onGround && !p.diving && !p.hanging) keys.push("AEREO");
+    if ((g.rally || 0) >= 8) keys.push("RALLY");
+    if (g.format === "2v2" && prevOwner !== p.i && teamOf(prevOwner) === teamOf(p.i)) keys.push("EQUIPE");
+    if (steal && highGrab) keys.push("ROUBO");
+    if ((p.lastCharge || 0) >= AIM_MAX - 1) keys.push("CARGA");
+    if (!simple && (p.lastCharge || 0) > 0 && p.lastCharge < AIM_MAX * 0.4) keys.push("PENA");
+    if (p.getup > 0) keys.push("RECUPERACAO");
+    if (g.extraTime || (g.timeLeft < 20 && totalOf(g, teamOf(p.i)) < totalOf(g, 1 - teamOf(p.i)))) keys.push("CLUTCH");
+    if (steal && down) keys.push("CONTRA");
+    if (p.jumps <= 0 && !p.onGround) keys.push("DUPLO");
+    if (!simple && Math.abs(dirx) > 0.7 && Math.abs(diry) < 0.45) keys.push("DIAGONAL");
+    if ((g.rally || 0) <= 0) keys.push("PRIMEIRO");
+    const priority = ["CLUTCH","MERGDEFESA","DOWNSMASH","CONTRA","ROUBO","BLOQUEIO","SALVOBAIXO","SALVAMENTO","PENDURADO","PAREDE","DESLIZE","CORTADA","EQUIPE","PEGADAALTA","DUPLO","RALLY","RECUPERACAO","CARGA","LOB","DIAGONAL","AEREO","DEFESA","COSTAS","PENA","PRIMEIRO","NEUTRO","CONTROLE"];
     const pick = priority.find(k => keys.includes(k)) || "CONTROLE";
     pushJudge(g, p.i, pick, b.x, b.y - 30);
     p.punchT = 16;
@@ -436,21 +661,27 @@
     const extra = Math.min(8, Math.hypot(p.vx, p.vy) * 0.45);
     b.vx += p.vx * 0.35 + (p.face * extra * 0.15);
     b.vy += p.vy * 0.2;
-    if (!simple && dy > 0.55 && impact > 8) {
+    if (!simple && dy > 0.42 && impact > 7) {
       const side = Math.sign(b.x - (p.x + p.w / 2)) || p.face;
-      b.vx += side * (0.55 + Math.random() * 0.7);
-      b.spin += side * 0.18;
+      b.vx += side * (1.35 + Math.random() * 0.85);
+      b.vx += dx * 0.9;
+      b.spin += side * 0.3;
     }
+    sfx("hit");
     b.spin += (dx * 0.18) + (p.face * 0.22) + (simple ? 0.06 : 0.35);
     const lim = 16;
     const sp = Math.hypot(b.vx, b.vy);
     if (sp > lim) { b.vx = b.vx / sp * lim; b.vy = b.vy / sp * lim; }
-    spawnHit(b.x, b.y, COLORS[p.i].light);
+    spawnHit(b.x, b.y, colOf(p.i).light);
     p.cooling = 18;
+  }
+  function chargePower(p) {
+    const t = Math.max(1, Math.min(AIM_MAX, p.aimT || 1));
+    return 5.2 + 7.6 * (t / AIM_MAX);
   }
   function startAim(p) {
     if (p.aimT > 0 || p.cooling > 0) return;
-    p.aimT = 42;
+    p.aimT = 1;
     p.aimX = 0; p.aimY = 0;
   }
   function playerInput(p, isLocal) {
@@ -477,48 +708,65 @@
     const dive = !!(isLocal && diveHeld) || !!(mode === "pvp" && !isLocal && remoteInput.dive);
     return { left, right, jump, use, ax, ay, down, dive };
   }
+  function aiCfg(diff) {
+    if (diff === "facil") return { react: 18, err: 70, look: 7, jumpCh: 0.35, noise: 0.45, range: 96, dive: 0.08, charge: 16 };
+    if (diff === "impossivel") return { react: 1, err: 2, look: 22, jumpCh: 0.95, noise: 0.03, range: 118, dive: 0.55, charge: 46 };
+    if (diff === "dificil") return { react: 5, err: 12, look: 16, jumpCh: 0.7, noise: 0.12, range: 104, dive: 0.22, charge: 36 };
+    return { react: 10, err: 32, look: 11, jumpCh: 0.5, noise: 0.25, range: 100, dive: 0.14, charge: 26 };
+  }
   function aiControl(p) {
-    const idle = { left:false, right:false, jump:false, use:false, ax:0, ay:-1, down:false, dive:false };
+    const idle = { left:false, right:false, jump:false, use:false, ax:0, ay:0, down:false, dive:false };
     if (p.respawnT > 0 || p.getup > 0 || !G.balloon.alive) return idle;
     const b = G.balloon;
-    const other = G.players[1 - p.i];
-    const diff = G.difficulty;
-    const cfg = diff === "facil"
-      ? { react: 26, err: 110, useCh: 0.32, look: 5, jumpCh: 0.14, noise: 0.85, range: 78, dive: 0 }
-      : diff === "impossivel"
-      ? { react: 2, err: 3, useCh: 0.98, look: 20, jumpCh: 0.92, noise: 0.04, range: 108, dive: 0.55 }
-      : diff === "dificil"
-      ? { react: 7, err: 16, useCh: 0.86, look: 14, jumpCh: 0.48, noise: 0.16, range: 92, dive: 0.12 }
-      : { react: 14, err: 48, useCh: 0.62, look: 9, jumpCh: 0.3, noise: 0.4, range: 86, dive: 0.06 };
+    const diff = (G.aiDiffs && G.aiDiffs[p.i]) || G.difficulty || "medio";
+    const cfg = aiCfg(diff);
+    const gm = G.gameMode;
+    const myTeam = teamOf(p.i);
+    const mine = teamOf(b.owner) === myTeam;
+    const rivals = G.players.filter(o => teamOf(o.i) !== myTeam && !o.respawnT);
+    const nearestRival = rivals.sort((a, c) => Math.abs((a.x + a.w / 2) - b.x) - Math.abs((c.x + c.w / 2) - b.x))[0];
+    const predX = b.x + b.vx * cfg.look;
+    const predY = b.y + b.vy * cfg.look * 0.55;
     p.aiWait = (p.aiWait || 0) - 1;
     if (p.aiWait <= 0) {
-      p.aiWait = cfg.react + Math.floor(Math.random() * cfg.react);
-      p.aiTX = b.x + b.vx * cfg.look + (Math.random() - 0.5) * cfg.err;
-      p.aiTY = b.y + b.vy * cfg.look * 0.6;
+      p.aiWait = cfg.react;
+      p.aiTX = predX + (Math.random() - 0.5) * cfg.err;
+      if (gm === "volley") {
+        if (mine) p.aiTX += myTeam === 0 ? 120 : -120;
+        else p.aiTX = myTeam === 0 ? Math.min(p.aiTX, 980) : Math.max(p.aiTX, 1420);
+      } else if (gm === "classic" && predY > 800) {
+        p.aiTX = predX;
+      }
+      p.aiChargeFor = Math.max(10, cfg.charge + Math.floor((Math.random() - 0.5) * 8));
     }
-    let left = false, right = false, jump = false, use = false, ax = 0, ay = -1;
-    const mine = b.owner === p.i;
+    let left = false, right = false, jump = false, use = false, ax = 0, ay = 0, dive = false;
     const pcx = p.x + p.w / 2;
-    if (pcx < p.aiTX - 22) right = true;
-    else if (pcx > p.aiTX + 22) left = true;
-    const dx = b.x - pcx, dy = b.y - (p.y + 12);
+    const pcy = p.y + p.h * 0.4;
+    if (pcx < p.aiTX - 16) right = true;
+    else if (pcx > p.aiTX + 16) left = true;
+    const dx = b.x - pcx, dy = b.y - pcy;
     const dist = Math.hypot(dx, dy);
-    if (Math.abs(dx) < 220 && b.y < p.y - 10 && (p.onGround || p.jumps > 0)) {
+    if ((predY < p.y - 8 || b.y < p.y) && Math.abs(pcx - predX) < 240 && (p.onGround || p.jumps > 0)) {
       if (Math.random() < cfg.jumpCh) jump = true;
     }
-    if (p.onWall && Math.random() < cfg.jumpCh) jump = true;
-    if (!p.diving && dist < cfg.range && p.cooling <= 0 && p.aimT <= 0 && Math.random() < cfg.useCh) use = true;
-    let dive = false;
-    if (!p.onGround && p.canDive && !p.diving && dist < 160 && b.y > p.y + 10 && Math.random() < cfg.dive) dive = true;
-    if (p.aimT > 0) {
-      if (diff === "impossivel") {
-        if (mine && inEnemyArea(p, b.x)) { ax = (other.x > p.x ? 0.15 : -0.15); ay = 0.95; }
-        else if (mine) { ax = (Math.random() - 0.5) * cfg.noise; ay = 0.75; }
-        else { ax = (other.x > p.x ? -0.55 : 0.55); ay = -0.95; }
-      } else if (mine) { ax = (Math.random() - 0.5) * cfg.noise; ay = 0.65 + Math.random() * 0.4; }
-      else { ax = (other.x > p.x ? -0.4 : 0.4) + (Math.random() - 0.5) * cfg.noise; ay = -0.85; }
+    if (gm === "classic" && b.y > 840 && Math.abs(dx) < 280) jump = true;
+    if (p.onWall) jump = true;
+    if (p.canDive && !p.diving && dist < 190) {
+      if (p.onGround && Math.abs(dx) > 90 && Math.random() < cfg.dive) dive = true;
+      else if (!p.onGround && b.y > p.y + 6 && Math.random() < cfg.dive) dive = true;
     }
-    if (diff === "facil" && Math.random() < 0.18) {
+    if (p.aimT > 0) {
+      use = p.aimT < (p.aiChargeFor || cfg.charge);
+      if (gm === "volley" && mine) { ax = myTeam === 0 ? 0.9 : -0.9; ay = 0.25; }
+      else if (gm === "volley" && !mine) { ax = myTeam === 0 ? 0.35 : -0.35; ay = -0.85; }
+      else if (gm === "control") { ax = 0; ay = -0.95; }
+      else if (gm === "classic" && mine) { ax = nearestRival ? Math.sign((nearestRival.x) - pcx) * 0.2 : 0; ay = 0.82; }
+      else { ax = nearestRival ? Math.sign(pcx - (nearestRival.x + nearestRival.w / 2)) * 0.4 : 0; ay = -0.8; }
+      ax += (Math.random() - 0.5) * cfg.noise;
+    } else if (dist < cfg.range && p.cooling <= 0) {
+      use = true;
+    }
+    if (diff === "facil" && Math.random() < 0.12) {
       left = Math.random() < 0.5; right = !left; jump = false; use = false; dive = false;
     }
     return { left, right, jump, use, ax, ay, down: false, dive };
@@ -531,12 +779,23 @@
     if (p.aimT > 0) {
       const dead = Math.hypot(inp.ax, inp.ay) < 0.28;
       if (!dead) { p.aimX = inp.ax; p.aimY = inp.ay; }
-      p.aimT--;
-      if (p.aimT <= 0) {
-        const simple = Math.hypot(p.aimX, p.aimY) < 0.28;
-        applyHit(g, p, p.aimX, p.aimY || -1, 11.5, simple);
+      const simple = Math.hypot(p.aimX, p.aimY) < 0.28;
+      if (!inp.use && p.useWasOn) {
+        const pow = chargePower(p);
+        p.lastCharge = p.aimT;
+        p.aimT = 0;
+        applyHit(g, p, simple ? 0 : p.aimX, simple ? -1 : p.aimY, pow, simple);
+      } else {
+        p.aimT = Math.min(AIM_MAX, p.aimT + 1);
+        if (p.aimT >= AIM_MAX) {
+          const pow = chargePower(p);
+          p.lastCharge = AIM_MAX;
+          p.aimT = 0;
+          applyHit(g, p, simple ? 0 : p.aimX, simple ? -1 : p.aimY, pow, simple);
+        }
       }
     }
+    p.useWasOn = !!inp.use;
   }
   function startVoid(p) {
     if (p.respawnT > 0) return;
@@ -561,14 +820,15 @@
     p.canDive = true;
     if (p.diving && fromDive !== false) {
       p.diving = false;
-      p.getup = 34;
-      p.vx = 0;
+      p.sliding = true;
+      p.getup = 0;
+      sfx("land");
     }
   }
   function tryGrab(g, p) {
     if (p.onGround || p.diving || p.getup > 0 || p.hanging || p.vy < -6) return;
     for (const plat of g.stage.platforms) {
-      if (plat.kind === "ground") continue;
+      if (plat.kind === "ground" || plat.kind === "walk") continue;
       const handY = p.y + 10;
       if (handY < plat.y - 12 || handY > plat.y + 20) continue;
       if (p.x + p.w > plat.x - 12 && p.x + p.w < plat.x + 18) {
@@ -673,8 +933,13 @@
       }
       tryGrab(g, p);
     } else {
-      const acc = 0.85 * scale, max = p.diving ? 12.2 : 6.1, fric = 1 - (1 - 0.78) * scale;
-      if (!locked && !p.diving) {
+      const acc = 0.85 * scale, max = p.diving || p.sliding ? 13.5 : 6.1, fric = 1 - (1 - 0.78) * scale;
+      if (p.sliding && !p.diving) {
+        p.vx *= 1 - (1 - 0.935) * scale;
+        if (inp.left) p.vx -= 0.18 * scale;
+        if (inp.right) p.vx += 0.18 * scale;
+        if (Math.abs(p.vx) < 0.28) { p.vx = 0; p.sliding = false; }
+      } else if (!locked && !p.diving) {
         if (inp.left) { p.vx -= acc; p.face = -1; }
         if (inp.right) { p.vx += acc; p.face = 1; }
         if (!inp.left && !inp.right) p.vx *= fric;
@@ -710,13 +975,22 @@
         if (p.lastDir === 1 && frameN - p.lastDirT <= 14) inp.dive = true;
         p.lastDir = 1; p.lastDirT = frameN;
       }
-      if (!p.onGround && !p.diving && p.canDive && !locked && inp.dive && scale > 0.4) {
+      if (!p.diving && p.canDive && !locked && inp.dive && scale > 0.4) {
         const dir = inp.left ? -1 : inp.right ? 1 : p.face;
         p.face = dir;
         p.diving = true;
         p.canDive = false;
-        p.vx = dir * 12.4;
-        p.vy = 8.5;
+        p.sliding = false;
+        sfx("dive");
+        if (p.onGround || p.coyote > 0) {
+          p.vx = dir * 13.4;
+          p.vy = -8.4;
+          p.onGround = false;
+          p.coyote = 0;
+        } else {
+          p.vx = dir * 12.4;
+          p.vy = 8.5;
+        }
       }
       p.x += p.vx * scale;
       p.y += p.vy * scale;
@@ -773,8 +1047,8 @@
     }
     if (p.onGround) landOn(p, true);
     else if (!p.hanging) tryGrab(g, p);
-    if (p.x + p.w < 0) p.x = ww - 4;
-    if (p.x > ww) p.x = 4 - p.w;
+    if (p.x < 0) { p.x = 0; if (p.vx < 0) p.vx = 0; }
+    if (p.x + p.w > ww) { p.x = ww - p.w; if (p.vx > 0) p.vx = 0; }
     if (p.y > wh + 8) startVoid(p);
     const b = g.balloon;
     const pcx = p.x + p.w / 2, pcy = p.y + p.h * 0.4;
@@ -815,8 +1089,7 @@
     p.leftPrev = !!inp.left;
     p.rightPrev = !!inp.right;
   }
-  function collidePlayers(g) {
-    const a = g.players[0], b = g.players[1];
+  function collidePair(a, b) {
     if (a.respawnT > 0 || b.respawnT > 0) return;
     if (!rectsOverlap(a, b)) return;
     const aFall = a.vy > 0.4 && a.y + a.h < b.y + 24 && a.y + a.h > b.y - 6;
@@ -846,6 +1119,11 @@
       if (b.jumpTap && !b.onGround) { b.vy = -12; b.vx = -b.onWall * 9; b.canDive = true; }
     }
   }
+  function collidePlayers(g) {
+    for (let i = 0; i < g.players.length; i++) {
+      for (let j = i + 1; j < g.players.length; j++) collidePair(g.players[i], g.players[j]);
+    }
+  }
   function bounceOwnGoal(g, sideOwner) {
     const b = g.balloon;
     b.y = 960 - b.r;
@@ -855,7 +1133,7 @@
     b.spin += (sideOwner === 0 ? 0.3 : -0.3);
     spawnHit(b.x, b.y, COLORS[sideOwner].light);
     judges.push({
-      text: "Sem ponto contra!",
+      text: t("no_own"),
       color: COLORS[sideOwner].light,
       x: b.x, y: b.y - 36,
       life: 55,
@@ -863,10 +1141,13 @@
     });
   }
   function timeExpired(g) {
-    return !!(g && (g.overtime || g.timeLeft <= 0));
+    if (!g || g.training || g.matchKind !== "time") return false;
+    if (g.gameMode === "control") return false;
+    return !!(g.overtime || g.timeLeft <= 0);
   }
   function endIfOvertimeTouch(g) {
     if (!g || g.over || !timeExpired(g)) return false;
+    if (scoresTied(g)) { startExtra(g); return false; }
     endMatch(g);
     return true;
   }
@@ -891,7 +1172,10 @@
     if (b.x < b.r) { b.x = b.r; b.vx = Math.abs(b.vx) * 0.74; b.spin += 0.2; }
     if (b.x > ww - b.r) { b.x = ww - b.r; b.vx = -Math.abs(b.vx) * 0.74; b.spin -= 0.2; }
     if (b.y < b.r) { b.y = b.r; b.vy = Math.abs(b.vy) * 0.58; b.spin *= -0.5; }
+    const inPit = g.gameMode === "volley" && (b.x < 320 || b.x > ww - 320);
     for (const plat of g.stage.platforms) {
+      if (plat.kind === "walk") continue;
+      if (plat.kind === "ground" && inPit) continue;
       const hit = circleRect(b.x, b.y, b.r, plat.x, plat.y, plat.w, plat.h);
       if (!hit) continue;
       b.x += hit.nx * hit.pen;
@@ -958,32 +1242,56 @@
       fallBalloon(g);
     }
   }
+  function startExtra(g) {
+    if (!g || g.over || g.training) return;
+    if (g.extraTime) {
+      g.overtime = true;
+      g.timeLeft = 0;
+      toast(t("extra_goal"));
+      return;
+    }
+    g.extraTime = true;
+    g.overtime = true;
+    g.timeLeft = 0;
+    g.freeze = 70;
+    toast(t("extra"));
+    setTimeout(() => { if (G && !G.over) resetRound(g, true); }, 600);
+  }
   function endMatch(g) {
     if (g.over) return;
+    if (scoresTied(g)) { startExtra(g); return; }
     g.over = true;
     const t0 = totalOf(g, 0), t1 = totalOf(g, 1);
-    g.winner = t0 === t1 ? (g.score[0] >= g.score[1] ? 0 : 1) : (t0 > t1 ? 0 : 1);
+    g.winner = t0 > t1 ? 0 : 1;
     setTimeout(() => showResult(), 700);
   }
   function fallBalloon(g) {
     if (!g.balloon.alive) return;
     g.balloon.alive = false;
     g.lastPoint = g.balloon.owner;
-    g.score[g.balloon.owner]++;
-    if (g.formMode) g.style[g.balloon.owner] += 200;
+    if (g.gameMode !== "control") g.score[teamOf(g.balloon.owner)]++;
+    if (g.formMode) g.style[teamOf(g.balloon.owner)] += 200;
+    sfx("point");
     g.flash = 40;
     g.rally = 0;
-    g.players[0].combo = 0;
-    g.players[1].combo = 0;
-    spawnHit(g.balloon.x, g.balloon.y, COLORS[g.balloon.owner].fill);
+    g.players.forEach(p => { p.combo = 0; });
+    spawnHit(g.balloon.x, g.balloon.y, colOf(g.balloon.owner).fill);
     judges.push({
-      text: g.formMode ? "Ponto! +200" : "Ponto!",
-      color: COLORS[g.balloon.owner].light,
+      text: g.formMode ? t("point") + " +200" : t("point"),
+      color: colOf(g.balloon.owner).light,
       x: g.balloon.x, y: g.balloon.y - 40,
       life: 70,
       i: g.balloon.owner
     });
-    if (g.timeLeft <= 0) {
+    if (g.training) {
+      setTimeout(() => { if (G && !G.over) resetRound(g, true); }, 700);
+      return;
+    }
+    if (g.matchKind === "best" && g.gameMode !== "control") {
+      const need = Math.ceil((g.bestOf || 5) / 2);
+      if (g.score[0] >= need || g.score[1] >= need) { endMatch(g); return; }
+    }
+    if (g.matchKind === "time" && g.timeLeft <= 0 && g.gameMode !== "control") {
       endMatch(g);
     } else {
       setTimeout(() => {
@@ -1015,7 +1323,8 @@
   }
   function drawPlayer(p) {
     if (p.respawnT > 0) return;
-    const c = COLORS[p.i];
+    if (G && G.training && p.i > 0) return;
+    const c = colOf(p.i);
     let x = p.x, y = p.y, w = p.w, h = p.h;
     if (p.getup > 0) { y = p.y + 28; h = 32; }
     else if (p.diving) { x = p.x - 8; y = p.y + 18; w = p.w + 16; h = 28; }
@@ -1027,6 +1336,10 @@
     ctx.strokeStyle = c.dark;
     ctx.lineWidth = 2;
     ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
+    if (p.i >= 2) {
+      ctx.fillStyle = "rgba(255,255,255,.35)";
+      ctx.fillRect(x + 4, y + h * 0.62, w - 8, 6);
+    }
     ctx.fillStyle = "#0f172a";
     const eyeY = y + h * 0.28;
     const front = p.face > 0 ? (x + w - 22) : (x + 6);
@@ -1042,13 +1355,20 @@
     ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.arc(x + fl.x, y + fl.y * (h / p.h), fistR, 0, 7); ctx.stroke();
     ctx.beginPath(); ctx.arc(x + fr.x, y + fr.y * (h / p.h), fistR, 0, 7); ctx.stroke();
-    if (p.aimT > 0) {
+    if (p.aimT > 0 && p.i === whoLocal()) {
       const cx = p.x + p.w / 2, cy = p.y + p.h / 2;
+      ctx.strokeStyle = "rgba(15,23,42,.45)";
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 44, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(255,255,255,.9)";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 44, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (p.aimT / AIM_MAX));
+      ctx.stroke();
       ctx.strokeStyle = "rgba(255,255,255,.85)";
       ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(cx, cy, 42, 0, Math.PI * 2);
-      ctx.stroke();
       const ang = Math.atan2(p.aimY, p.aimX);
       ctx.beginPath();
       ctx.moveTo(cx, cy);
@@ -1058,7 +1378,7 @@
   }
   function drawBalloon(b) {
     if (!b.alive) return;
-    const c = COLORS[b.owner];
+    const c = colOf(b.owner);
     ctx.save();
     ctx.translate(b.x, b.y);
     ctx.fillStyle = "rgba(15,23,42,.15)";
@@ -1115,18 +1435,35 @@
     const sky = g.stage.sky;
     const grd = ctx.createLinearGradient(0, 0, 0, wh);
     grd.addColorStop(0, sky[0]);
-    grd.addColorStop(0.55, sky[1]);
+    grd.addColorStop(0.38, sky[1]);
+    grd.addColorStop(0.72, "#2c2430");
     grd.addColorStop(1, "#3a2a1c");
     ctx.fillStyle = grd;
     ctx.fillRect(0, 0, ww, wh);
-    ctx.fillStyle = "#2b2436";
-    ctx.fillRect(0, 0, ww, 90);
-    ctx.fillStyle = "#1a1622";
-    for (let i = 0; i < 10; i++) ctx.fillRect(80 + i * 230, 18, 150, 48);
-    ctx.fillStyle = "rgba(255,236,180,.10)";
+    ctx.fillStyle = "rgba(255,255,255,.07)";
+    for (let i = 0; i < 28; i++) {
+      ctx.fillRect((i * 197 + 40) % ww, 20 + (i * 37) % 220, i % 3 === 0 ? 3 : 2, i % 3 === 0 ? 3 : 2);
+    }
+    ctx.fillStyle = "rgba(20,16,28,.55)";
+    ctx.beginPath();
+    ctx.moveTo(0, 430);
+    ctx.quadraticCurveTo(400, 300, 900, 410);
+    ctx.quadraticCurveTo(1400, 500, 2400, 360);
+    ctx.lineTo(ww, 980); ctx.lineTo(0, 980); ctx.fill();
+    ctx.fillStyle = "rgba(12,10,18,.45)";
+    ctx.beginPath();
+    ctx.moveTo(0, 560);
+    ctx.quadraticCurveTo(600, 470, 1200, 580);
+    ctx.quadraticCurveTo(1800, 660, 2400, 520);
+    ctx.lineTo(ww, 980); ctx.lineTo(0, 980); ctx.fill();
+    ctx.fillStyle = "#221c2c";
+    ctx.fillRect(0, 0, ww, 78);
+    ctx.fillStyle = "#16121c";
+    for (let i = 0; i < 12; i++) ctx.fillRect(40 + i * 200, 10, 120, 42);
+    ctx.fillStyle = "rgba(255,236,180,.08)";
     for (let i = 0; i < 8; i++) {
       ctx.beginPath();
-      ctx.ellipse(180 + i * 280, 110, 80, 20, 0, 0, 7);
+      ctx.ellipse(180 + i * 280, 102, 90, 16, 0, 0, 7);
       ctx.fill();
     }
     for (const side of (g.stage.sides || [])) {
@@ -1146,14 +1483,19 @@
       ctx.fillStyle = col.light;
       ctx.font = "700 18px Trebuchet MS, sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText(col.name, side.x + side.w / 2, side.y + 22);
+      ctx.fillText(side.owner === 0 ? t("blue") : t("orange"), side.x + side.w / 2, side.y + 22);
     }
     for (const plat of g.stage.platforms) {
+      if (plat.kind === "walk") continue;
       if (plat.kind === "ground") {
-        ctx.fillStyle = "#6b4424";
-        ctx.fillRect(plat.x, plat.y, plat.w, plat.h + 40);
+        ctx.fillStyle = "rgba(0,0,0,.25)";
+        ctx.fillRect(plat.x, plat.y + 8, plat.w, plat.h + 48);
+        ctx.fillStyle = "#5c3b22";
+        ctx.fillRect(plat.x, plat.y, plat.w, plat.h + 46);
         ctx.fillStyle = "#8b5a2b";
-        ctx.fillRect(plat.x, plat.y, plat.w, 16);
+        ctx.fillRect(plat.x, plat.y, plat.w, 14);
+        ctx.fillStyle = "#a36b36";
+        ctx.fillRect(plat.x, plat.y, plat.w, 4);
         ctx.strokeStyle = "rgba(255,220,160,.18)";
         ctx.lineWidth = 3;
         ctx.strokeRect(plat.x + 40, plat.y + 8, plat.w - 80, 8);
@@ -1163,11 +1505,14 @@
         ctx.fillStyle = "#4a2f18";
         for (let i = 0; i < 16; i++) ctx.fillRect(i * 80 + 10, plat.y + 22, 56, 3);
       } else {
-        ctx.fillStyle = "#fb923c";
+        ctx.fillStyle = "rgba(0,0,0,.28)";
+        roundRect(plat.x + 4, plat.y + 6, plat.w, plat.h, 6);
+        ctx.fill();
+        ctx.fillStyle = "#e9892e";
         roundRect(plat.x, plat.y, plat.w, plat.h, 6);
         ctx.fill();
         ctx.fillStyle = "#fdba74";
-        ctx.fillRect(plat.x + 6, plat.y + 3, plat.w - 12, 8);
+        ctx.fillRect(plat.x + 6, plat.y + 3, plat.w - 12, 6);
       }
     }
     ctx.fillStyle = "#07060a";
@@ -1214,38 +1559,38 @@
     ctx.font = "800 22px Trebuchet MS, sans-serif";
     ctx.textAlign = "center";
     ctx.fillStyle = COLORS[0].light;
-    ctx.fillText(String(totalOf(g, 0)), W / 2 - 180, 42);
+    ctx.fillText(g.training ? "—" : String(totalOf(g, 0)), W / 2 - 180, 42);
     ctx.font = "600 12px Trebuchet MS, sans-serif";
-    ctx.fillText(g.formMode ? (g.score[0] + " pts · forma " + (g.style[0] || 0)) : (g.score[0] + " quedas"), W / 2 - 180, 60);
+    ctx.fillText(g.gameMode === "control" ? formatTime(g.hold[0] || 0) : (g.score[0] + " " + t("pts")), W / 2 - 180, 60);
     ctx.fillStyle = "#e2e8f0";
     ctx.font = "800 22px Trebuchet MS, sans-serif";
-    ctx.fillText(g.overtime ? "0:00+" : formatTime(g.timeLeft), W / 2, 40);
+    ctx.fillText(g.training ? t("train_hud") : (g.extraTime ? "OT" : (g.overtime ? "0:00+" : (g.matchKind === "best" ? t("best_hud") + " " + g.bestOf : formatTime(g.timeLeft)))), W / 2, 40);
     ctx.fillStyle = "#94a3b8";
     ctx.font = "600 12px Trebuchet MS, sans-serif";
-    ctx.fillText(g.formMode ? (g.stage.name + " · melhor em forma") : g.stage.name, W / 2, 58);
+    ctx.fillText(stageNameOf(g.stage) + " · " + modeLabel(g.gameMode) + (g.formMode ? " · " + t("form_hud") : "") + (g.extraTime ? " · OT" : ""), W / 2, 58);
     ctx.font = "800 22px Trebuchet MS, sans-serif";
     ctx.fillStyle = COLORS[1].light;
-    ctx.fillText(String(totalOf(g, 1)), W / 2 + 180, 42);
+    ctx.fillText(g.training ? "—" : String(totalOf(g, 1)), W / 2 + 180, 42);
     ctx.font = "600 12px Trebuchet MS, sans-serif";
-    ctx.fillText(g.formMode ? (g.score[1] + " pts · forma " + (g.style[1] || 0)) : (g.score[1] + " quedas"), W / 2 + 180, 60);
+    ctx.fillText(g.training ? "" : (g.gameMode === "control" ? formatTime(g.hold[1] || 0) : (g.score[1] + " " + t("pts"))), W / 2 + 180, 60);
     if (g.formMode) {
       const c0 = g.players[0].combo || 0, c1 = g.players[1].combo || 0;
       if (c0 > 1) {
         ctx.fillStyle = COLORS[0].light;
         ctx.font = "700 13px Trebuchet MS, sans-serif";
-        ctx.fillText("combo x" + c0, 90, 36);
+        ctx.fillText(t("combo") + " x" + c0, 90, 36);
       }
       if (c1 > 1) {
         ctx.fillStyle = COLORS[1].light;
         ctx.font = "700 13px Trebuchet MS, sans-serif";
-        ctx.fillText("combo x" + c1, W - 90, 36);
+        ctx.fillText(t("combo") + " x" + c1, W - 90, 36);
       }
     }
     const waiting = g.players.filter(p => p.respawnT > 0);
     if (waiting.length) {
       ctx.fillStyle = "rgba(226,232,240,.8)";
       ctx.font = "600 14px Trebuchet MS, sans-serif";
-      ctx.fillText("voltando...", W / 2, H - 24);
+      ctx.fillText(t("returning"), W / 2, H - 24);
     }
     if (g.freeze > 0) {
       ctx.fillStyle = "rgba(15,23,42,.28)";
@@ -1289,27 +1634,30 @@
     }
     if (G.freeze > 0) G.freeze--;
     else if (!G.over && (mode !== "pvp" || isHost || !netReady)) {
-      if (!G.overtime) {
+      if (!G.training && G.matchKind === "time" && !G.overtime) {
         G.timeLeft -= dt / 1000;
         if (G.timeLeft <= 0) {
           G.timeLeft = 0;
-          G.overtime = true;
-          toast("Acréscimo! próximo ponto ou toque acaba");
+          if (G.gameMode === "control") endMatch(G);
+          else { G.overtime = true; toast(t("added")); }
         }
+      }
+      if (!G.training && G.gameMode === "control" && G.balloon.alive && G.freeze <= 0) {
+        G.hold[teamOf(G.balloon.owner)] += dt / 1000;
+        if (G.matchKind === "best" && (G.hold[0] >= holdTarget(G) || G.hold[1] >= holdTarget(G))) endMatch(G);
       }
       const loc = whoLocal();
       const inputs = G.players.map(p => {
-        const remoteP = mode === "pvp" && p.i !== loc;
-        const aiP = mode === "pve" && p.i === 1;
-        if (aiP) return aiControl(p);
-        if (remoteP) return playerInput(p, false);
-        return playerInput(p, true);
+        if (G.training && p.i > 0) return { left:false, right:false, jump:false, use:false, ax:0, ay:0, down:false, dive:false };
+        if (p.i === loc) return playerInput(p, true);
+        if (mode === "pvp" && ((isHost && p.i === 1) || (!isHost && p.i === 0))) return playerInput(p, false);
+        return aiControl(p);
       });
-      G.players.forEach((p, i) => stepAim(G, p, inputs[i]));
-      const aiming = G.players.some(p => p.aimT > 0);
+      G.players.forEach((p, i) => { if (!(G.training && i > 0)) stepAim(G, p, inputs[i]); });
+      const aiming = G.players.some(p => p.aimT > 0 && !(G.training && p.i > 0));
       G.slow = aiming ? 0.06 : 1;
-      G.players.forEach((p, i) => stepPlayer(G, p, inputs[i], G.slow));
-      collidePlayers(G);
+      G.players.forEach((p, i) => { if (!(G.training && i > 0)) stepPlayer(G, p, inputs[i], G.slow); });
+      if (!G.training) collidePlayers(G);
       stepBalloon(G, G.slow);
       stepParticles();
       if (G.flash > 0) G.flash--;
@@ -1352,103 +1700,180 @@
   function showUI(html) {
     ui.innerHTML = html ? `<div class="panel">${html}</div>` : "";
   }
-  function extrasHint() {
-    const bits = [];
-    if (formOpt) bits.push("forma");
-    if (groundPopOpt) bits.push("estouro no chão");
-    return bits.length ? "extras: " + bits.join(" · ") : "toque o balão, mire e não deixe o ponto escapar";
-  }
   function menuMain() {
     screen = STATE.MENU;
     paused = false;
     btnPause.classList.add("hidden");
     touchLayer.classList.add("hidden");
+    document.documentElement.lang = lang === "pt" ? "pt-BR" : "en";
     showUI(`
       <h1>Don't Let Fall!</h1>
-      <p class="sub">${extrasHint()}</p>
-      <button class="menu primary" data-a="pve">Jogar contra o computador</button>
-      <button class="menu p2" data-a="pvp">Jogar contra um amigo</button>
-      <button class="menu" data-a="extras">Opções extras</button>
-      <button class="menu ghost" data-a="how">Como jogar</button>
+      <p class="sub">${t("tag")}</p>
+      <button class="menu primary" data-a="play">${t("play")}</button>
+      <button class="menu ghost" data-a="how">${t("how")}</button>
+      <button class="menu p2" data-a="treino">${t("train")}</button>
     `);
     bindUI();
   }
-  function menuExtras() {
+  function menuPlay() {
     showUI(`
-      <h1>Opções extras</h1>
-      <p class="sub">ligue só o que quiser na partida</p>
-      <button class="menu${formOpt ? " primary" : ""}" data-a="toggle-form">${formOpt ? "Forma · ligada" : "Forma · desligada"}</button>
-      <p class="hint" style="margin-top:0">julgamentos e combos somam pontos no fim do tempo</p>
-      <button class="menu${groundPopOpt ? " primary" : ""}" data-a="toggle-pop">${groundPopOpt ? "Estouro no chão · ligado" : "Estouro no chão · desligado"}</button>
-      <p class="hint" style="margin-top:0">se desligado, o balão quica no chão central e só pontua nos vãos</p>
-      <button class="menu ghost" data-a="back">Voltar</button>
+      <h1>${t("play")}</h1>
+      <p class="sub">${t("pick_opp")}</p>
+      <button class="menu primary" data-a="path-pve">${t("vs_cpu")}</button>
+      <button class="menu p2" data-a="path-pvp">${t("vs_friend")}</button>
+      <button class="menu ghost" data-a="back">${t("back")}</button>
     `);
     bindUI();
+  }
+  function menuFormat() {
+    showUI(`
+      <h1>${t("type")}</h1>
+      <p class="sub">${t("type_sub")}</p>
+      <button class="menu${gameFormat==="1v1"?" primary":""}" data-a="fmt-1v1">1 v 1</button>
+      <button class="menu${gameFormat==="2v2"?" primary":""}" data-a="fmt-2v2">2 v 2</button>
+      <button class="menu primary" data-a="to-mode">${t("cont_mode")}</button>
+      <button class="menu ghost" data-a="back">${t("back")}</button>
+    `);
+    bindUI();
+  }
+  function menuMode() {
+    const mk = (id) => gameMode === id ? " primary" : "";
+    showUI(`
+      <h1>${t("mode")}</h1>
+      <p class="sub">${t("mode_sub")}</p>
+      <button class="menu${mk("classic")}" data-a="gm-classic">${t("classic")}</button>
+      <button class="menu${mk("volley")}" data-a="gm-volley">${t("volley")}</button>
+      <button class="menu${mk("control")}" data-a="gm-control">${t("control")}</button>
+      <button class="menu primary" data-a="to-rules">${t("cont_rules")}</button>
+      <button class="menu ghost" data-a="back">${t("back")}</button>
+    `);
+    bindUI();
+  }
+  function menuRules() {
+    showUI(`
+      <h1>${t("rules")}</h1>
+      <p class="sub">${modeLabel(gameMode)} · ${gameFormat}</p>
+      <button class="menu${formOpt ? " primary" : ""}" data-a="toggle-form">${formOpt ? t("form_on") : t("form_off")}</button>
+      <button class="menu${matchKind === "time" ? " primary" : ""}" data-a="mk-time">${t("by_time")}</button>
+      <button class="menu${matchKind === "best" ? " primary" : ""}" data-a="mk-best">${t("best_of")} ${bestOf}</button>
+      ${matchKind === "time" ? `
+        <div class="row">
+          <button class="menu${selectedMinutes===1?" primary":""}" data-a="time-1">1 ${t("min")}</button>
+          <button class="menu${selectedMinutes===2?" primary":""}" data-a="time-2">2 ${t("min")}</button>
+          <button class="menu${selectedMinutes===3?" primary":""}" data-a="time-3">3 ${t("min")}</button>
+          <button class="menu${selectedMinutes===5?" primary":""}" data-a="time-5">5 ${t("min")}</button>
+        </div>
+      ` : `
+        <div class="row">
+          <button class="menu${bestOf===3?" primary":""}" data-a="best-3">${t("of")} 3</button>
+          <button class="menu${bestOf===5?" primary":""}" data-a="best-5">${t("of")} 5</button>
+          <button class="menu${bestOf===7?" primary":""}" data-a="best-7">${t("of")} 7</button>
+        </div>
+      `}
+      <button class="menu primary" data-a="to-map">${t("cont_map")}</button>
+      <button class="menu ghost" data-a="back">${t("back")}</button>
+    `);
+    bindUI();
+  }
+  function diffBtn(slot, label) {
+    const cur = aiDiffs[slot] || "medio";
+    return `<p class="hint" style="margin:10px 0 4px">${label}</p>
+      <div class="row">
+        <button class="menu${cur==="facil"?" primary":""}" data-a="aid-${slot}-facil">${t("easy")}</button>
+        <button class="menu${cur==="medio"?" primary":""}" data-a="aid-${slot}-medio">${t("mid")}</button>
+        <button class="menu${cur==="dificil"?" primary":""}" data-a="aid-${slot}-dificil">${t("hard")}</button>
+        <button class="menu${cur==="impossivel"?" primary":""}" data-a="aid-${slot}-impossivel">${t("imp")}</button>
+      </div>`;
   }
   function menuDiff() {
+    let body = "";
+    if (gameFormat === "2v2" && playPath === "pve") {
+      body = diffBtn(2, t("mate")) + diffBtn(1, t("rival_a")) + diffBtn(3, t("rival_b"));
+    } else if (gameFormat === "2v2") {
+      body = diffBtn(2, t("mate_ai")) + diffBtn(3, t("their_ai"));
+    } else {
+      body = diffBtn(1, t("opp"));
+    }
     showUI(`
-      <h1>Dificuldade</h1>
-      <p class="sub">a CPU joga como pessoa, não como speedrun</p>
-      <button class="menu" data-a="go-facil">Fácil · lenta e erra</button>
-      <button class="menu primary" data-a="go-medio">Médio · disputa de verdade</button>
-      <button class="menu p2" data-a="go-dificil">Difícil · boa, mas humana</button>
-      <button class="menu" data-a="go-impossivel">Impossível · a melhor de todas</button>
-      <button class="menu ghost" data-a="back">Voltar</button>
-    `);
-    bindUI();
-  }
-  function menuTime(next) {
-    const mark = (m) => selectedMinutes === m ? " primary" : "";
-    showUI(`
-      <h1>Tempo de jogo</h1>
-      <p class="sub">${formOpt ? "quem somar mais quedas + forma vence" : "quem fizer mais quedas no tempo vence"}</p>
-      <button class="menu${mark(1)}" data-a="time-1">1 minuto</button>
-      <button class="menu${mark(2)}" data-a="time-2">2 minutos</button>
-      <button class="menu${mark(3)}" data-a="time-3">3 minutos</button>
-      <button class="menu${mark(5)}" data-a="time-5">5 minutos</button>
-      <button class="menu primary" data-a="${next}">Continuar</button>
-      <button class="menu ghost" data-a="back">Voltar</button>
+      <h1>${t("ai")}</h1>
+      <p class="sub">${t("ai_sub")}</p>
+      ${body}
+      <button class="menu primary" data-a="start-now">${t("play")}</button>
+      <button class="menu ghost" data-a="back">${t("back")}</button>
     `);
     bindUI();
   }
   function menuStage(next) {
     if (next) stageNext = next;
     const mark = (id) => selectedStage === id ? " primary" : "";
+    const names = [t("n_quadra"), t("n_plats"), t("n_tramp"), t("n_walls")];
     showUI(`
-      <h1>Escolher fase</h1>
-      <p class="sub">a partida inteira acontece nesta fase. depois você pode trocar</p>
-      <button class="menu${mark(0)}" data-a="stage-0">1 · Quadra</button>
-      <button class="menu${mark(1)}" data-a="stage-1">2 · Plataformas</button>
-      <button class="menu${mark(2)}" data-a="stage-2">3 · Trampolins</button>
-      <button class="menu${mark(3)}" data-a="stage-3">4 · Paredes</button>
-      <button class="menu primary" data-a="${stageNext}">Jogar nesta fase</button>
-      <button class="menu ghost" data-a="back">Voltar</button>
+      <h1>${t("map")}</h1>
+      <p class="sub">${names[selectedStage]}</p>
+      <canvas id="mapPrev" width="400" height="132"></canvas>
+      <div class="row">
+        <button class="menu${mark(0)}" data-a="stage-0">1</button>
+        <button class="menu${mark(1)}" data-a="stage-1">2</button>
+        <button class="menu${mark(2)}" data-a="stage-2">3</button>
+        <button class="menu${mark(3)}" data-a="stage-3">4</button>
+      </div>
+      <button class="menu primary" data-a="${stageNext}">${t("use_map")}</button>
+      <button class="menu ghost" data-a="back">${t("back")}</button>
     `);
     bindUI();
+    drawMapPreview(selectedStage);
+  }
+  function drawMapPreview(id) {
+    const c = document.getElementById("mapPrev");
+    if (!c) return;
+    const x = c.getContext("2d");
+    const st = stageDef(id, gameMode);
+    const sx = c.width / st.ww, sy = c.height / st.wh;
+    const sky = st.sky;
+    const g = x.createLinearGradient(0, 0, 0, c.height);
+    g.addColorStop(0, sky[0]); g.addColorStop(1, sky[1]);
+    x.fillStyle = g; x.fillRect(0, 0, c.width, c.height);
+    for (const side of st.sides || []) {
+      x.fillStyle = COLORS[side.owner].fill + "66";
+      x.fillRect(side.x * sx, side.y * sy, side.w * sx, (st.wh - side.y) * sy);
+    }
+    for (const plat of st.platforms) {
+      if (plat.kind === "walk") continue;
+      x.fillStyle = plat.kind === "ground" ? "#8b5a2b" : "#fb923c";
+      x.fillRect(plat.x * sx, plat.y * sy, plat.w * sx, Math.max(4, plat.h * sy));
+    }
+    for (const t of st.trampolines || []) {
+      x.fillStyle = "#86efac";
+      x.fillRect(t.x * sx, t.y * sy, t.w * sx, 4);
+    }
+    for (const w of st.walls || []) {
+      x.fillStyle = "#cbd5e1";
+      x.fillRect(w.x * sx, w.y * sy, w.w * sx, w.h * sy);
+    }
+    x.fillStyle = "#e2e8f0";
+    x.font = "700 12px Trebuchet MS, sans-serif";
+    x.textAlign = "center";
+    x.fillText(stageNameOf(st), c.width / 2, 16);
   }
   function menuPvp() {
     showUI(`
-      <h1>Versus amigo</h1>
-      <p class="sub">conexão direta com PeerJS</p>
-      <button class="menu primary" data-a="pvp-time">Criar sala</button>
-      <button class="menu" data-a="join">Entrar em sala</button>
-      <button class="menu ghost" data-a="back">Voltar</button>
+      <h1>${t("pvp")}</h1>
+      <p class="sub">${t("pvp_sub")}</p>
+      <button class="menu primary" data-a="host">${t("host")}</button>
+      <button class="menu" data-a="join">${t("join")}</button>
+      <button class="menu ghost" data-a="back">${t("back")}</button>
     `);
     bindUI();
   }
   function menuHow() {
     showUI(`
-      <h1>Como jogar</h1>
+      <h1>${t("how")}</h1>
       <div class="hint">
-        O balão nasce com a cor de um jogador. Quem tocou por último fica com a cor.<br><br>
-        Os vãos laterais têm a cor de cada lado: se o balão da mesma cor cair ali, ele sobe (sem ponto contra).<br><br>
-        A partida é por tempo (1, 2, 3 ou 5 min). Em Opções extras você liga o modo forma e o estouro no chão.<br><br>
-        <b>Forma:</b> Salvamento, Defesa, Mergulho de defesa, Controle de balão, Down smash (só na área adversária), Pegada alta, Salvo por baixo e De costas.<br><br>
-        Sem apontar direção o toque é neutro e mais fraco. Smash para baixo forte desvia um pouco.<br><br>
-        <b>PC:</b> ← → andar · ↑ / Z / Espaço pular · toque duplo ← ou → mergulha · X tocar · Esc pausa no PvE<br>
-        <b>Celular:</b> joystick · Pular, Tocar e Mergulho à direita
+        ${t("how_c")}<br>${t("how_v")}<br>${t("how_k")}<br><br>
+        ${t("how_d")}<br>${t("how_h")}<br>${t("how_a")}<br><br>
+        ${t("how_pc")}<br>${t("how_ph")}
       </div>
-      <button class="menu primary" data-a="back">Entendi</button>
+      <button class="menu primary" data-a="back">${t("ok")}</button>
     `);
     bindUI();
   }
@@ -1457,57 +1882,106 @@
       btn.addEventListener("click", () => onAction(btn.getAttribute("data-a")));
     });
   }
+  function gameOpts(m, extra) {
+    return Object.assign({
+      mode: m,
+      difficulty,
+      minutes: selectedMinutes,
+      formMode: formOpt,
+      gameMode,
+      matchKind,
+      bestOf,
+      stageId: selectedStage,
+      format: gameFormat,
+      aiDiffs: aiDiffs.slice()
+    }, extra || {});
+  }
   function onAction(a) {
-    if (a === "pve") menuDiff();
+    sfx("ui");
+    if (a === "play") menuPlay();
+    else if (a === "path-pve") { playPath = "pve"; mode = "pve"; menuFormat(); }
+    else if (a === "path-pvp") { playPath = "pvp"; mode = "pvp"; menuFormat(); }
+    else if (a === "treino") { playPath = "treino"; menuStage("start-treino"); }
     else if (a === "pvp") menuPvp();
     else if (a === "how") menuHow();
-    else if (a === "extras") menuExtras();
-    else if (a === "toggle-form") { formOpt = !formOpt; menuExtras(); }
-    else if (a === "toggle-pop") { groundPopOpt = !groundPopOpt; menuExtras(); }
+    else if (a === "fmt-1v1") { gameFormat = "1v1"; menuFormat(); }
+    else if (a === "fmt-2v2") { gameFormat = "2v2"; menuFormat(); }
+    else if (a === "to-mode") menuMode();
+    else if (a.startsWith("gm-")) { gameMode = a.slice(3); menuMode(); }
+    else if (a === "to-rules") menuRules();
+    else if (a === "toggle-form") { formOpt = !formOpt; menuRules(); }
+    else if (a === "mk-time") { matchKind = "time"; menuRules(); }
+    else if (a === "mk-best") { matchKind = "best"; menuRules(); }
+    else if (a.startsWith("best-")) { bestOf = Number(a.slice(5)); matchKind = "best"; menuRules(); }
+    else if (a === "to-map") menuStage(playPath === "pvp" ? (gameFormat === "2v2" ? "ai-or-start" : "pvp-next") : "ai-or-start");
+    else if (a === "pvp-next") menuPvp();
+    else if (a === "ai-or-start") menuDiff();
+    else if (a === "start-now") {
+      if (playPath === "pvp") menuPvp();
+      else startLocal();
+    } else if (a.startsWith("aid-")) {
+      const parts = a.split("-");
+      aiDiffs[Number(parts[1])] = parts[2];
+      difficulty = aiDiffs[1] || difficulty;
+      menuDiff();
+    }
     else if (a === "resume") resumeGame();
     else if (a === "back") { closePeer(); paused = false; menuMain(); }
     else if (a.startsWith("go-")) {
       difficulty = a.slice(3);
-      menuTime("to-stage-pve");
-    } else if (a === "to-stage-pve") menuStage("start-pve");
-    else if (a === "pvp-time") { mode = "pvp"; menuTime("pvp-stage"); }
-    else if (a === "pvp-stage") menuStage("host");
-    else if (a.startsWith("time-")) {
+      startLocal();
+    } else if (a.startsWith("time-")) {
       selectedMinutes = Number(a.slice(5));
-      if (mode === "pvp") menuTime("pvp-stage");
-      else menuTime("to-stage-pve");
+      matchKind = "time";
+      menuRules();
     } else if (a.startsWith("stage-")) {
       selectedStage = Number(a.slice(6));
       menuStage(stageNext);
-    } else if (a === "start-pve") startLocal();
-    else if (a === "host") startHost();
+    } else if (a === "start-pve" || a === "start-treino") {
+      if (a === "start-treino") startTraining();
+      else startLocal();
+    } else if (a === "host") startHost();
     else if (a === "join") startJoin();
     else if (a === "copy") {
       if (myPeerId) navigator.clipboard?.writeText(myPeerId);
-      toast("ID copiado");
+      toast(t("copy"));
     } else if (a === "dojoin") {
       const id = document.getElementById("joinId")?.value.trim();
       if (id) connectTo(id);
     } else if (a === "again") {
-      if (mode === "pve") startLocal();
+      if (playPath === "treino") startTraining();
+      else if (mode === "pve") startLocal();
       else if (netReady && isHost) {
-        G = createGame({ mode: "pvp", stageId: selectedStage, minutes: selectedMinutes, formMode: formOpt, groundPop: groundPopOpt });
+        G = createGame(gameOpts("pvp"));
         screen = STATE.GAME;
         showUI("");
         if (isMobile()) touchLayer.classList.remove("hidden");
         try { conn.send({ t: "start", game: snapshot() }); } catch (e) {}
       } else menuPvp();
     } else if (a === "change-stage") {
-      if (mode === "pve") menuStage("start-pve");
-      else menuStage("host");
+      menuStage(playPath === "pvp" ? "pvp-next" : (playPath === "treino" ? "start-treino" : "ai-or-start"));
     }
   }
   function startLocal() {
     mode = "pve";
+    playPath = "pve";
     isHost = true;
     localIndex = 0;
     paused = false;
-    G = createGame({ mode, difficulty, minutes: selectedMinutes, formMode: formOpt, groundPop: groundPopOpt });
+    G = createGame(gameOpts("pve"));
+    screen = STATE.GAME;
+    showUI("");
+    btnPause.classList.remove("hidden");
+    if (isMobile()) touchLayer.classList.remove("hidden");
+    sfx("whistle");
+  }
+  function startTraining() {
+    mode = "pve";
+    playPath = "treino";
+    isHost = true;
+    localIndex = 0;
+    paused = false;
+    G = createGame(gameOpts("pve", { training: true }));
     screen = STATE.GAME;
     showUI("");
     btnPause.classList.remove("hidden");
@@ -1517,10 +1991,10 @@
     if (screen !== STATE.GAME || !G || mode !== "pve" || G.over) return;
     paused = true;
     showUI(`
-      <h1>Pausa</h1>
-      <p class="sub">${formatTime(G.timeLeft)} · ${G.stage.name}</p>
-      <button class="menu primary" data-a="resume">Continuar</button>
-      <button class="menu ghost" data-a="back">Menu</button>
+      <h1>${t("pause")}</h1>
+      <p class="sub">${formatTime(G.timeLeft)} · ${stageNameOf(G.stage)}</p>
+      <button class="menu primary" data-a="resume">${t("resume")}</button>
+      <button class="menu ghost" data-a="back">${t("menu")}</button>
     `);
     bindUI();
   }
@@ -1537,15 +2011,15 @@
     const youWin = mode === "pve" ? w === 0 : w === localIndex;
     const t0 = totalOf(G, 0), t1 = totalOf(G, 1);
     const formTxt = G.formMode
-      ? `<br>quedas ${G.score[0]}-${G.score[1]} · forma ${G.style[0]}-${G.style[1]}`
+      ? `<br>${G.score[0]}-${G.score[1]} · ${t("form_hud")} ${G.style[0]}-${G.style[1]}`
       : "";
     showUI(`
-      <h1>${youWin ? "Você venceu!" : "Fim de jogo"}</h1>
-      <p class="sub">${COLORS[w].name} ${G.formMode ? "fez mais pontos de forma + queda" : "fez mais quedas"}</p>
-      <p class="peerid">${t0} x ${t1}${formTxt}<br>${G.minutes} min · ${G.stage.name}</p>
-      <button class="menu primary" data-a="again">Jogar de novo nesta fase</button>
-      <button class="menu" data-a="change-stage">Trocar fase</button>
-      <button class="menu ghost" data-a="back">Menu</button>
+      <h1>${youWin ? t("win") : t("lose")}</h1>
+      <p class="sub">${w === 0 ? t("blue") : t("orange")} ${G.formMode ? t("more_form") : t("more_falls")}</p>
+      <p class="peerid">${t0} x ${t1}${formTxt}<br>${G.minutes} ${t("min")} · ${stageNameOf(G.stage)}</p>
+      <button class="menu primary" data-a="again">${t("again")}</button>
+      <button class="menu" data-a="change-stage">${t("change")}</button>
+      <button class="menu ghost" data-a="back">${t("menu")}</button>
     `);
     bindUI();
   }
@@ -1560,23 +2034,23 @@
     mode = "pvp";
     isHost = true;
     localIndex = 0;
-    showUI(`<h1>Criando sala…</h1><p class="sub">falando com o PeerJS</p>`);
+    showUI(`<h1>${t("creating")}</h1><p class="sub">${t("talking")}</p>`);
     try {
       peer = new Peer();
     } catch (e) {
-      showUI(`<h1>Erro</h1><p class="sub">PeerJS não carregou</p><button class="menu" data-a="back">Voltar</button>`);
+      showUI(`<h1>${t("err")}</h1><p class="sub">${t("peer_fail")}</p><button class="menu" data-a="back">${t("back")}</button>`);
       bindUI();
       return;
     }
     peer.on("open", id => {
       myPeerId = id;
       showUI(`
-        <h1>Sala criada</h1>
-        <p class="sub">envie este ID para o amigo</p>
+        <h1>${t("room")}</h1>
+        <p class="sub">${t("send_id")}</p>
         <div class="peerid">${id}</div>
-        <button class="menu primary" data-a="copy">Copiar ID</button>
-        <p class="hint">esperando o outro jogador entrar…</p>
-        <button class="menu ghost" data-a="back">Cancelar</button>
+        <button class="menu primary" data-a="copy">${t("copy")}</button>
+        <p class="hint">${t("wait")}</p>
+        <button class="menu ghost" data-a="back">${t("back")}</button>
       `);
       bindUI();
     });
@@ -1593,16 +2067,16 @@
     isHost = false;
     localIndex = 1;
     showUI(`
-      <h1>Entrar</h1>
-      <p class="sub">cole o ID da sala</p>
-      <input class="id" id="joinId" placeholder="id-do-amigo" autocomplete="off">
-      <button class="menu primary" data-a="dojoin">Conectar</button>
-      <button class="menu ghost" data-a="back">Voltar</button>
+      <h1>${t("enter")}</h1>
+      <p class="sub">${t("send_id")}</p>
+      <input class="id" id="joinId" placeholder="id" autocomplete="off">
+      <button class="menu primary" data-a="dojoin">${t("enter")}</button>
+      <button class="menu ghost" data-a="back">${t("back")}</button>
     `);
     bindUI();
   }
   function connectTo(id) {
-    showUI(`<h1>Conectando…</h1><p class="sub">${id}</p>`);
+    showUI(`<h1>${t("joining")}</h1><p class="sub">${id}</p>`);
     try { peer = new Peer(); } catch(e) { toast("PeerJS indisponível"); return; }
     peer.on("open", () => {
       conn = peer.connect(id, { reliable: true });
@@ -1615,7 +2089,7 @@
       netReady = true;
       toast("Conectado!");
       if (isHost) {
-        G = createGame({ mode: "pvp", minutes: selectedMinutes, stageId: selectedStage, formMode: formOpt, groundPop: groundPopOpt });
+        G = createGame(gameOpts("pvp"));
         screen = STATE.GAME;
         showUI("");
         if (isMobile()) touchLayer.classList.remove("hidden");
@@ -1639,6 +2113,14 @@
       formMode: !!G.formMode,
       groundPop: !!G.groundPop,
       overtime: !!G.overtime,
+      extraTime: !!G.extraTime,
+      format: G.format,
+      aiDiffs: (G.aiDiffs || []).slice(),
+      gameMode: G.gameMode,
+      matchKind: G.matchKind,
+      bestOf: G.bestOf,
+      hold: (G.hold || [0, 0]).slice(),
+      training: !!G.training,
       cam: G.cam ? { ...G.cam } : null,
       players: G.players.map(p => ({
         i: p.i, x: p.x, y: p.y, vx: p.vx, vy: p.vy, face: p.face, aimT: p.aimT, aimX: p.aimX, aimY: p.aimY, cooling: p.cooling,
@@ -1650,13 +2132,16 @@
     };
   }
   function applySnap(s) {
-    if (!G) G = createGame({ mode: "pvp" });
+    if (!G || (s.players && G.players.length !== s.players.length)) {
+      G = createGame({ mode: "pvp", format: s.format || "1v1" });
+    }
     G.score = s.score;
     G.style = s.style || [0, 0];
     G.minutes = s.minutes || G.minutes;
     G.timeLeft = s.timeLeft != null ? s.timeLeft : G.timeLeft;
     G.stageId = s.stageId;
-    G.stage = stageDef(s.stageId);
+    G.gameMode = s.gameMode || G.gameMode;
+    G.stage = stageDef(s.stageId, G.gameMode);
     G.freeze = s.freeze;
     G.over = s.over;
     G.winner = s.winner;
@@ -1664,6 +2149,13 @@
     G.formMode = !!s.formMode;
     G.groundPop = !!s.groundPop;
     G.overtime = !!s.overtime;
+    G.extraTime = !!s.extraTime;
+    G.matchKind = s.matchKind || G.matchKind;
+    G.bestOf = s.bestOf != null ? s.bestOf : G.bestOf;
+    G.hold = s.hold || G.hold || [0, 0];
+    G.training = !!s.training;
+    G.format = s.format || G.format;
+    if (s.aiDiffs) G.aiDiffs = s.aiDiffs;
     s.players.forEach((sp, i) => Object.assign(G.players[i], sp));
     Object.assign(G.balloon, s.balloon);
     if (s.cam) G.cam = s.cam;
